@@ -1,0 +1,80 @@
+version: "3.7"
+
+#Docker Networks
+networks:
+  laravel:
+    driver: bridge
+
+#Volumes
+#volumes:
+        #  dbdata:
+        #    driver: local
+
+# Workflow
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: ./compose/nginx/Dockerfile
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./code:/var/www/html
+    depends_on:
+      - php
+    networks:
+      - laravel
+  php:
+    build:
+      context: .
+      dockerfile: ./compose/php/Dockerfile
+    container_name: php
+    volumes:
+      - ./code:/var/www/html
+      # Enable xdebug
+    ports:
+      - "9000:9000"
+    networks:
+      - laravel
+
+  composer:
+    build:
+      context: .
+      dockerfile: ./compose/php/composer/Dockerfile
+    container_name: composer
+    volumes:
+      - ./code:/var/www/html
+    depends_on:
+      - php
+        # user: laravel
+    networks:
+      - laravel
+    entrypoint: ['composer','install','--ignore-platform-reqs']        
+
+  npm:
+    build:
+      context: .
+      dockerfile: ./compose/npm/Dockerfile
+    container_name: npm
+    volumes:
+      - ./code:/var/www/html
+    working_dir: /var/www/html
+
+    networks:
+      - laravel
+
+  mongodb_container:
+    container_name: mongo
+    image: mongo:latest
+    environment:
+      MONGO_INITDB_DATABASE: strive
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: strivebenefits
+    ports:
+      - 27017:27017
+    volumes:
+      - mongodb_data_container:/data/db
+
+volumes:
+  mongodb_data_container:        
